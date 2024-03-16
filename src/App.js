@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { ConnectWallet, useConnectWallet } from "@newm.io/cardano-dapp-wallet-connector";
 import { generateSignedDataChallenge, answerSignedDataChallenge, getQRCode } from './api';
 import './App.css';
-import { wait } from "@testing-library/user-event/dist/utils";
 
 
 function App() {
@@ -30,13 +29,13 @@ function App() {
       console.error(error)
       alert(`Failed getting Wallet Address: ${error}`);
     }
-  }
+  };
 
   const handleDisconnect = () => {
     setAddress(null)
     setQrCodeUrl(null)
     setQrCodeLabel(null)
-  }
+  };
 
   const handleConnectFromMobile = async () => {
     if (isHardwareWallet) {
@@ -52,9 +51,9 @@ function App() {
       setQrCodeLabel(`newm-${connection.connectionId}`)
     } catch (error) {
       console.error(error)
-      alert(`Connection export failed: ${error}`);
+      alert(`Failed preparing to connect from mobile: ${error}`);
     }
-  }
+  };
 
 
   return (
