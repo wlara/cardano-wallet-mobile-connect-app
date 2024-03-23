@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { ConnectWallet, useConnectWallet } from "@newm.io/cardano-dapp-wallet-connector";
-import { generateSignedDataChallenge, answerSignedDataChallenge, getQRCode } from './api';
-import './App.css';
+import { ConnectWallet, useConnectWallet, signWalletTransaction } from "@newm.io/cardano-dapp-wallet-connector";
+import { generateChallenge, answerChallenge, getQRCode } from "./api";
+import { encodeAddress } from "./utils";
+import "./App.css";
 
 
 function App() {
   const { wallet } = useConnectWallet();
   const [isHardwareWallet, setIsHarwareWallet] = useState(false)
-  const [address, setAddress] = useState(null)
+  const [stakeAddress, setStakeAddress] = useState(null)
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [qrCodeLabel, setQrCodeLabel] = useState(null);
 
@@ -23,29 +24,34 @@ function App() {
 
   const handleConnect = async () => {
     try {
-      const addresses = await wallet.getRewardAddresses()
-      setAddress(addresses[0])
+      const adresses = await wallet.getRewardAddresses()
+      setStakeAddress(encodeAddress(adresses[0]))
     } catch (error) {
       console.error(error)
-      alert(`Failed getting Wallet Address: ${error}`);
+      alert(`Failed getting Stake Address: ${error}`);
     }
   };
 
   const handleDisconnect = () => {
-    setAddress(null)
+    setStakeAddress(null)
     setQrCodeUrl(null)
     setQrCodeLabel(null)
   };
 
   const handleConnectFromMobile = async () => {
-    if (isHardwareWallet) {
-      alert('Not supported yet!!')
-      return
-    }
     try {
-      const challenge = await generateSignedDataChallenge(address);
-      const result = await wallet.signData(address, challenge.payload)
-      const connection = await answerSignedDataChallenge(challenge.challengeId, result.signature)
+      let connection
+      if (isHardwareWallet) {
+        const changeAddress = encodeAddress(await wallet.getChangeAddress())
+        const utxos = await wallet.getUtxos("1a001e8480")
+        const challenge = await generateChallenge("SignedTransaction", stakeAddress, changeAddress, utxos);
+        const answer = await signWalletTransaction(wallet, challenge.payload)
+        connection = await answerChallenge(challenge.challengeId, answer)
+      } else {
+        const challenge = await generateChallenge("SignedData", stakeAddress);
+        const answer = await wallet.signData(stakeAddress, challenge.payload)
+        connection = await answerChallenge(challenge.challengeId, answer.signature, answer.key)
+      }
       const image = await getQRCode(connection.connectionId)
       setQrCodeUrl(URL.createObjectURL(image))
       setQrCodeLabel(`newm-${connection.connectionId}`)
@@ -62,7 +68,10 @@ function App() {
         <div>
           <ConnectWallet />
         </div>
-        {address && !qrCodeUrl && (
+        {stakeAddress && (
+          <p>{stakeAddress}</p>
+        )}
+        {stakeAddress && !qrCodeUrl && (
           <>
             <div>
               <button className="App-button" onClick={handleConnectFromMobile}>Connect from Mobile App</button>

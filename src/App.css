@@ -16,7 +16,6 @@
 .App-button {
   border-radius: 10px;
   padding: 12px;
-  margin-top: 24px;
   font-size: medium;
 }
 
@@ -29,7 +28,6 @@
 }
 
 .App-image {
-  margin-top: 24px;
   background-color: white;
   width: 256px;
   height: auto;
